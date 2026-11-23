@@ -1,0 +1,14 @@
+# Контекст сборки — корень репозитория (BuildKit читает <Dockerfile>.dockerignore).
+# Ключи и локальные артефакты в образ не попадают.
+.git
+**/.venv
+**/__pycache__
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+**/*.sqlite3
+**/*.db
+.coverage
+htmlcov
+.env
+deploy/certs/out

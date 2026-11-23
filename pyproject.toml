@@ -1,0 +1,157 @@
+# Репозиторий data-service агента Support Bot.
+# Сгенерирован шаблоном admin-platform/templates/data-service.
+# Владелец — команда агента: набор операций, деплой и mTLS-доступ.
+
+[project]
+name = "support-bot-data-service-workspace"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "support-bot-data",
+  "support-bot-data-client",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["services/*"]
+
+[tool.uv.sources]
+support-bot-data = { workspace = true }
+support-bot-data-client = { workspace = true }
+
+[dependency-groups]
+dev = [
+  "mypy>=1.15",
+  "ruff>=0.11",
+  "flake8>=7.1",
+  "wemake-python-styleguide>=1.1",
+  "import-linter>=2.3",
+  "pytest>=8.3",
+  "pytest-cov>=6.0",
+  "pytest-randomly>=3.16",
+]
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+target-version = "py312"
+line-length = 80
+extend-exclude = ["**/migrations/**"]
+
+[tool.ruff.format]
+quote-style = "single"
+docstring-code-format = true
+
+[tool.ruff.lint]
+external = ["WPS"]  # коды wemake-python-styleguide в noqa
+select = ["ALL"]
+ignore = [
+  "COM812",  # конфликтует с форматтером
+  "D100",    # docstring модуля
+  "D104",    # docstring пакета
+  "D203",    # несовместимо с D211
+  "D213",    # несовместимо с D212
+  "CPY001",  # copyright-заголовки
+  "Q000",    # кавычки решает форматтер (single)
+  "RUF001", "RUF002", "RUF003",  # кириллица в строках/докстрингах/комментариях
+  "TC001", "TC002", "TC003",  # pydantic/FastAPI нужны рантайм-аннотации
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = [
+  "S101", "S105", "S106", "D", "PLR2004", "ANN401", "INP001", "ARG001",
+  "PLR0911", "EM101", "TRY003",
+]
+"**/conftest.py" = ["INP001"]
+"core/manage.py" = ["INP001"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "admin_sdk",
+  "admin_core",
+  "support_bot_admin",
+  "support_bot_data",
+  "support_bot_data_client",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+enable_error_code = [
+  "truthy-bool",
+  "truthy-iterable",
+  "redundant-expr",
+  "unused-awaitable",
+  "ignore-without-code",
+  "possibly-undefined",
+  "redundant-self",
+  "explicit-override",
+  "mutable-override",
+  "unimported-reveal",
+  "deprecated",
+]
+disallow_any_explicit = true
+disallow_any_decorated = false
+# Ядро добавляет mypy_django_plugin в своём core/pyproject.toml.
+plugins = ["pydantic.mypy"]
+exclude = ["/migrations/"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+addopts = [
+  "--strict-markers",
+  "--strict-config",
+  "--import-mode=importlib",
+  "--cov",
+  "--cov-report=term-missing:skip-covered",
+  "--cov-fail-under=90",
+]
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["support_bot_data", "support_bot_data_client"]
+branch = true
+omit = [
+  "*/tests/*",
+  "*/conftest.py",
+  "*/migrations/*",
+  "*/wsgi.py",
+  "*/asgi.py",
+  "*/manage.py",
+  "*/__main__.py",
+  "scripts/*",
+]
+
+[tool.coverage.report]
+exclude_also = ["if TYPE_CHECKING:", "class .*\\(Protocol\\):", "@overload"]
+
+# ---------------------------------------------------------------- import-linter
+[tool.importlinter]
+root_packages = ["support_bot_data", "support_bot_data_client"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Data-service и клиент не знают об админке"
+type = "forbidden"
+source_modules = ["support_bot_data", "support_bot_data_client"]
+forbidden_modules = ["admin_sdk", "admin_core", "django"]
+
+[[tool.importlinter.contracts]]
+name = "Клиент не тянет серверную часть"
+type = "forbidden"
+source_modules = ["support_bot_data_client"]
+forbidden_modules = ["support_bot_data", "sqlalchemy", "litestar"]
